@@ -3,7 +3,6 @@ package com.takinlib.frames;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.concurrent.ExecutionException;
 
 import javax.swing.*;
 
@@ -17,6 +16,7 @@ public class ShowBook {
     private JFrame frame;
 
     public ShowBook(int x, int y) {
+
         frame = new JFrame("livraria");
         frame.setSize(x, y);
 
@@ -42,14 +42,18 @@ public class ShowBook {
     }
 
     public void MostrarLivro(long livro, String pesquisa) {
+        final long duracao = System.nanoTime() - Procurar.tempoInicioProcura;
+        String tempoProcura = Long.toString(duracao / 1000000000);
         // Limpa a interface antes de mostrar o livro
         limparInterface();
         System.out.println(Thread.currentThread() + " no mostrarlivro");
+        
 
         GerarLivros gerador = new GerarLivros(livro);
         String dataLivro = gerador.obterLivroEspecifico(livro)
                 .replaceAll(pesquisa, "<<<<<>" + pesquisa + "<>>>>>");
-        frame.setTitle("livro " + livro);
+        frame.setTitle("livro " + livro+"  |||  "+Main.livros.size()+
+                    " livros em "+tempoProcura+"s, "+(Main.livros.size()/(duracao/1000000000))+"liv/s.");
         JButton voltarButton = new JButton("Nova Pesquisa");
         voltarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -79,11 +83,10 @@ public class ShowBook {
         JButton botaoBuscar = new JButton("Buscar");
         Procurar procra = new Procurar();
         JLabel threads = new JLabel("Digite quantidade de threads:");
-        JTextField campoThreads = new JTextField(20);
+        JTextField campoThreads = new JTextField(1);
         campoThreads.setText("2");
         botaoBuscar.addActionListener((ActionListener) new ActionListener() {
             private String termoBusca = "";
-            private long livro = 0;
             private int threads = 1;
 
             public void actionPerformed(ActionEvent e) {

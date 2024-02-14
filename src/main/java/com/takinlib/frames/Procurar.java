@@ -3,22 +3,21 @@ package com.takinlib.frames;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import com.takinlib.Main;
+
 import com.takinlib.livros.GerarLivros;
 
 public class Procurar {
     protected String pesquisa;
     public static List<Thread> threadList = new ArrayList<>();
     public List<String> resultado = new ArrayList<>();
-    private String str;
     private long num = -1;
-
+    public static long tempoInicioProcura;
+    @SuppressWarnings("static-access")
     public Long procurar(String procura, int threads) throws InterruptedException {
-
+        tempoInicioProcura = System.nanoTime();
         System.out.println(new SimpleDateFormat("HH:mm:ss")
                 .format(Calendar.getInstance().getTime()));
         threadList.clear();
@@ -35,11 +34,6 @@ public class Procurar {
                     gerador.achado = true;
                     gerador.setRunning(false);
                     for (Object obj : conteudo) {
-                        if (obj instanceof String) {
-                            str = (String) obj;
-                            System.out.println("String: " + str);
-                            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n");
-                        }
                         if (obj instanceof Long) {
                             num = (long) obj;
                             System.out.println("Long: " + num);
@@ -78,10 +72,11 @@ public class Procurar {
 
     }
 
+    @SuppressWarnings("deprecation")
     public void pararThreads() {
         System.out.println(Thread.currentThread() + " parando threads");
         try {
-            Thread.sleep(40);
+            Thread.sleep(400);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
