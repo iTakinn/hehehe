@@ -10,7 +10,7 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException {
 
-        shw.displayContent(0, "search");;
+        shw.principal();;
 
     }
 

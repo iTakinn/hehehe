@@ -4,12 +4,19 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import com.takinlib.Main;
 import com.takinlib.livros.GerarLivros;
 import com.takinlib.livros.Procurar;
 
-import java.awt.*;
+
 
 public class ShowBookv2 {
     private JTextArea pagina1;
@@ -39,14 +46,16 @@ public class ShowBookv2 {
         inface.revalidate();
         inface.repaint();
     }
+
     public void principal() {
+        criarBancoDeDadosSeNaoExistir();
         clearInterface();
 
         // Botão para fazer pesquisa
         JButton searchButton = new JButton("Fazer Pesquisa");
         searchButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                displayContent(0,"search");
+                displayContent(0, "search");
             }
         });
 
@@ -83,11 +92,95 @@ public class ShowBookv2 {
             displaySearch();
         } else if (oq.equals("show")) {
             displayBook(livro);
-        }else if (oq.equals("list")){
-
-        }else if(oq.equals("unique")){
+        } else if (oq.equals("list")) {
+            criarBiblioteca();
+        } else if (oq.equals("unique")) {
 
         }
+    }
+
+    private void criarBancoDeDadosSeNaoExistir() {
+        // Nome do arquivo do banco de dados
+        String nomeArquivo = "livros.db";
+
+        // Verificar se o arquivo do banco de dados existe
+        File arquivo = new File(nomeArquivo);
+
+        if (!arquivo.exists()) {
+            // Se o arquivo não existe, criar o banco de dados e a tabela
+            try {
+                Connection connection = DriverManager.getConnection("jdbc:sqlite:" + nomeArquivo);
+                Statement statement = connection.createStatement();
+
+                // Criação da tabela 'livros' com a coluna 'id' e 'esta_na_tabela'
+                String sql = "CREATE TABLE IF NOT EXISTS livros (" +
+                        "id INTEGER PRIMARY KEY, " +
+                        "esta_na_tabela BOOLEAN)";
+                statement.execute(sql);
+
+                statement.close();
+                connection.close();
+
+                System.out.println("Banco de dados criado com sucesso.");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("O banco de dados já existe.");
+        }
+    }
+
+    private void criarBiblioteca() {
+        clearInterface();
+
+        JPanel bibliotecaPanel = new JPanel();
+        bibliotecaPanel.setLayout(new GridLayout(0, 5)); // 5 livros por linha
+
+        try {
+            // Conexão com o banco de dados SQLite
+            Connection connection = DriverManager.getConnection("jdbc:sqlite:livros.db");
+
+            // Consulta SQL para selecionar todos os livros
+            String sql = "SELECT * FROM livros";
+
+            // Preparar a declaração
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            // Executar a consulta
+            ResultSet resultSet = statement.executeQuery();
+
+            // Loop sobre o resultado da consulta
+            while (resultSet.next()) {
+                long livroId = resultSet.getLong("id");
+
+                JPanel livroPanel = new JPanel();
+                livroPanel.setPreferredSize(new Dimension(100, 100)); // Tamanho do quadradinho do livro
+
+                JLabel idLabel = new JLabel("ID: " + livroId);
+                livroPanel.add(idLabel);
+
+                // Verificar se o livro está na tabela com background azul claro
+                if (resultSet.getBoolean("esta_na_tabela")) {
+                    livroPanel.setBackground(new Color(173, 216, 230)); // Azul claro
+                }
+
+                bibliotecaPanel.add(livroPanel);
+            }
+
+            // Fechar recursos
+            resultSet.close();
+            statement.close();
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        JScrollPane scrollPane = new JScrollPane(bibliotecaPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
+        frame.add(scrollPane);
+        frame.revalidate();
+        frame.repaint();
     }
 
     private void displayBook(long livro) {
@@ -101,7 +194,7 @@ public class ShowBookv2 {
         String dataLivro = gerador.obterLivroEspecifico(livro)
                 .replaceAll(pesquisa, "<<<<<>" + pesquisa + "<>>>>>");
         frame.setTitle("livro " + livro + "  |||  " + Main.livros.size() +
-                " livros em " + tempoProcura + "s, " + (Main.livros.size()/tempoProcura) + "liv/s.");
+                " livros em " + tempoProcura + "s, " + (Main.livros.size() / tempoProcura) + "liv/s.");
         JButton voltarButton = new JButton("Nova Pesquisa");
         voltarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -110,6 +203,7 @@ public class ShowBookv2 {
                 displayContent(0, "search");
             }
         });
+        inserirLivroNoBancoDeDados(livro);
         frame.add(voltarButton, BorderLayout.SOUTH);
         pagina1.setText(dataLivro);
         pagina1.setFont(new Font("Ubuntu", Font.ITALIC, 13));
@@ -121,7 +215,25 @@ public class ShowBookv2 {
         inface.revalidate();
         inface.repaint();
     }
-
+    private void inserirLivroNoBancoDeDados(long idLivro) {
+        try {
+            Connection connection = DriverManager.getConnection("jdbc:sqlite:livros.db");
+    
+            // SQL para inserir um ID de livro na tabela
+            String sql = "INSERT INTO livros (id, esta_na_tabela) VALUES (?, ?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setLong(1, idLivro);
+            statement.setBoolean(2, true); // Definir como true para indicar que está na tabela
+            statement.executeUpdate();
+    
+            statement.close();
+            connection.close();
+    
+            System.out.println("Livro inserido no banco de dados com sucesso.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     private void displaySearch() {
         clearInterface();
         JPanel searchPanel = new JPanel();
@@ -202,6 +314,5 @@ public class ShowBookv2 {
     public long getLivro() {
         return this.livro;
     }
-
 
 }
