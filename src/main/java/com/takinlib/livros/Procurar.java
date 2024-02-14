@@ -1,12 +1,10 @@
-package com.takinlib.frames;
+package com.takinlib.livros;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
-
-import com.takinlib.livros.GerarLivros;
 
 public class Procurar {
     protected String pesquisa;

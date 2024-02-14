@@ -8,6 +8,7 @@ import javax.swing.*;
 
 import com.takinlib.Main;
 import com.takinlib.livros.GerarLivros;
+import com.takinlib.livros.Procurar;
 
 public class ShowBook {
 
