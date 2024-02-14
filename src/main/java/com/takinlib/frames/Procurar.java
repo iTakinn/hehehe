@@ -6,7 +6,6 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 
-
 import com.takinlib.livros.GerarLivros;
 
 public class Procurar {
@@ -15,6 +14,7 @@ public class Procurar {
     public List<String> resultado = new ArrayList<>();
     private long num = -1;
     public static long tempoInicioProcura;
+
     @SuppressWarnings("static-access")
     public Long procurar(String procura, int threads) throws InterruptedException {
         tempoInicioProcura = System.nanoTime();

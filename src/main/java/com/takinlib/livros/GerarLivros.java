@@ -59,7 +59,7 @@ public class GerarLivros {
                                 .format(Calendar.getInstance().getTime()));
                 running = false;
                 HashSet conteudo = new HashSet();
-                //conteudo.add(livroGerado);
+                // conteudo.add(livroGerado);
                 conteudo.add(livro);
                 return conteudo;
             } else {
@@ -72,23 +72,26 @@ public class GerarLivros {
         return null;
     }
 
-    /*public boolean checarPesquisa() throws IOException, InterruptedException {
-        while (!achou && running) {
-            if (this.getLivroGerado().toString().contains(pesquisa)) {
-                System.out.println(getLivroGerado());
-                System.out.println(Thread.currentThread() + "  ACHOU no livro " + livro + "   "
-                        + new SimpleDateFormat("HH:mm:ss" + livroGerado)
-                                .format(Calendar.getInstance().getTime()));
-                achou = true;
-                running = false;
-            } else {
-                livro++;
-                System.out.println(livro);
-                this.sb.delete(0, tamanho + 1);
-            }
-        }
-        return achou;
-    }*/
+    /*
+     * public boolean checarPesquisa() throws IOException, InterruptedException {
+     * while (!achou && running) {
+     * if (this.getLivroGerado().toString().contains(pesquisa)) {
+     * System.out.println(getLivroGerado());
+     * System.out.println(Thread.currentThread() + "  ACHOU no livro " + livro +
+     * "   "
+     * + new SimpleDateFormat("HH:mm:ss" + livroGerado)
+     * .format(Calendar.getInstance().getTime()));
+     * achou = true;
+     * running = false;
+     * } else {
+     * livro++;
+     * System.out.println(livro);
+     * this.sb.delete(0, tamanho + 1);
+     * }
+     * }
+     * return achou;
+     * }
+     */
 
     public String getLivroGerado() {
         return this.livroGerado;

@@ -47,13 +47,12 @@ public class ShowBook {
         // Limpa a interface antes de mostrar o livro
         limparInterface();
         System.out.println(Thread.currentThread() + " no mostrarlivro");
-        
 
         GerarLivros gerador = new GerarLivros(livro);
         String dataLivro = gerador.obterLivroEspecifico(livro)
                 .replaceAll(pesquisa, "<<<<<>" + pesquisa + "<>>>>>");
-        frame.setTitle("livro " + livro+"  |||  "+Main.livros.size()+
-                    " livros em "+tempoProcura+"s, "+(Main.livros.size()/(duracao/1000000000))+"liv/s.");
+        frame.setTitle("livro " + livro + "  |||  " + Main.livros.size() +
+                " livros em " + tempoProcura + "s, " + (Main.livros.size() / (duracao / 1000000000)) + "liv/s.");
         JButton voltarButton = new JButton("Nova Pesquisa");
         voltarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
