@@ -15,6 +15,9 @@ public class GerarLivros {
     public GerarLivros(long threadIndex) {
         this.livro = threadIndex;
     }
+    public static boolean getRunning(){
+        return running;
+    }
 
     public void setLivro(long livro) {
         this.livro = livro;
@@ -25,7 +28,7 @@ public class GerarLivros {
     }
 
     StringBuilder sb = new StringBuilder();
-    public int tamanho = 3600;
+    public int tamanho = 36000;
 
     public boolean achado = false;
     

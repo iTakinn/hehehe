@@ -286,7 +286,7 @@ public class ShowBookv2 {
                 " livros");
                 inface.revalidate();
                 inface.repaint();
-                Thread.sleep(1000); //TODO esse trem nao volta se parar a pesquisa e voltar
+                Thread.sleep(1000); 
                 if(rodando){
                     doInBackground();
                 }return null;

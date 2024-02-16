@@ -90,7 +90,7 @@ public class ShowBookv2 extends Application {
         } else if (oq.equals("list")) {
             criarBiblioteca();
         } else if (oq.equals("unique")) {
-            principal(); //TODO pesquisa por livro
+            principal(); // TODO pesquisa por livro
         }
     }
 
@@ -169,8 +169,8 @@ public class ShowBookv2 extends Application {
 
         inface.setCenter(contentPane);
     }
-    
-    private void displayContent(long livro){
+
+    private void displayContent(long livro) {
         clearInterface();
 
         GerarLivros gerador = new GerarLivros(livro);
@@ -186,7 +186,7 @@ public class ShowBookv2 extends Application {
         Button voltarButton = new Button("Voltar");
         voltarButton.setOnAction(e -> principal());
 
-        VBox buttonsBox = new VBox(10,  voltarButton);
+        VBox buttonsBox = new VBox(10, voltarButton);
         buttonsBox.setAlignment(Pos.CENTER);
 
         BorderPane contentPane = new BorderPane();
@@ -197,7 +197,6 @@ public class ShowBookv2 extends Application {
         inface.setCenter(contentPane);
     }
 
-
     private void displayBook(long livro) {
         final long duracao = System.nanoTime() - Procurar.tempoInicioProcura;
         double tempoProcura = (duracao / 1000000000);
@@ -207,7 +206,7 @@ public class ShowBookv2 extends Application {
         GerarLivros gerador = new GerarLivros(livro);
         String dataLivro = gerador.obterLivroEspecifico(livro)
                 .replaceAll(pesquisa, "<<<<<>" + pesquisa + "<>>>>>");
-        
+
         inserirLivroNoBancoDeDados(livro);
 
         Label titleLabel = new Label("livro " + livro + "  |||  " + Main.livros.size() +
@@ -261,54 +260,88 @@ public class ShowBookv2 extends Application {
     }
 
     private long bookId;
-
+    Procurar searcher = new Procurar();
     private void displaySearch() {
         clearInterface();
-
+    
         VBox searchPanel = new VBox(10);
         Label label = new Label("Digite o termo a ser buscado:");
         TextField searchField = new TextField();
         Button searchButton = new Button("Buscar");
-        Procurar searcher = new Procurar();
-
+        
+    
         HBox threadBox = new HBox(10);
         Label threadLabel = new Label("Digite quantidade de threads (muitos pode bugar):");
         TextField threadField = new TextField("2");
         threadBox.getChildren().addAll(threadLabel, threadField);
-
+    
+        Label livroAtualLabel = new Label();
+        searchPanel.getChildren().addAll(label, searchField, searchButton, livroAtualLabel, threadBox);
+    
         searchButton.setOnAction(e -> {
             String term = searchField.getText();
             setPesquisa(term);
             int threads = Integer.parseInt(threadField.getText());
-
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            executor.submit(() -> {
-
-                try {
-                    bookId = searcher.procurar(term, threads);
-                    if (bookId > 0) {
-                        Platform.runLater(() -> displayContent(bookId, "show"));
-                    }
-                } catch (InterruptedException e1) {
-
-                    e1.printStackTrace();
+            searcher = new Procurar();
+            Task<Long> task = new Task<Long>() {
+                @Override
+                protected Long call() throws Exception {
+                    return searcher.procurar(term, threads);
                 }
-
+            };
+    
+            task.setOnSucceeded(event -> {
+                long bookId = task.getValue();
+                if (bookId > 0) {
+                    displayContent(bookId, "show");
+                }
             });
-
+    
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.submit(task);
+    
             executor.shutdown();
         });
-
+    
         Button stopButton = new Button("Parar Pesquisa");
         stopButton.setOnAction(e -> {
             Main.livros.clear();
             searcher.pararThreads();
         });
-
-        searchPanel.getChildren().addAll(label, searchField, searchButton, stopButton, threadBox);
+    
+        searchPanel.getChildren().addAll(stopButton);
         inface.setBottom(searchPanel);
+        GerarLivros.setRunning(true);
+    
+        // Atualizar o número de livros enquanto a pesquisa está em andamento
+        Task<Void> updateLivrosTask = new Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                long livroAtual=0;
+                Thread.sleep(100);
+                while (GerarLivros.getRunning()) {
+                    livroAtual = Main.livros.size();
+                    updateMessage(livroAtual + " livros");
+                    Thread.sleep(1000);
+                }Thread.sleep(2350);
+                if (GerarLivros.getRunning()==false) {
+                    updateMessage("0 livros");
+                    Thread.sleep(1000);    
+                    Main.livros.clear();
+                    updateMessage("0 livros");
+                }
+                return null;
+            }
+        };
+    
+        updateLivrosTask.messageProperty().addListener((observable, oldValue, newValue) -> {
+            livroAtualLabel.setText(newValue);
+        });
+    
+        Thread thread = new Thread(updateLivrosTask);
+        thread.setDaemon(true);
+        thread.start();
     }
-
     // Additional methods if needed
     private void setPesquisa(String term) {
         this.pesquisa = term;

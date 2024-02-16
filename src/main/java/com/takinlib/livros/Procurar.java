@@ -12,12 +12,14 @@ public class Procurar {
     public List<String> resultado = new ArrayList<>();
     private long num = -1;
     public static long tempoInicioProcura;
-    
+    public Procurar(){
+        GerarLivros.setRunning(true);
+    }
 
     @SuppressWarnings("static-access")
     public Long procurar(String procura, int threads) throws InterruptedException {
         tempoInicioProcura = System.nanoTime();
-      
+        
         threadList.clear();
         for (int i = 0; i < threads; i++) {
             long livroDaThread = i * 1000000000L;
