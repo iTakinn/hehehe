@@ -1,0 +1,383 @@
+package com.takinlib.frames;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+
+import com.takinlib.Main;
+import com.takinlib.livros.GerarLivros;
+import com.takinlib.livros.Procurar;
+
+
+
+public class ShowBookv2 {
+    private JTextArea pagina1;
+    private JPanel inface;
+    private JFrame frame;
+    private long livro;
+    private String pesquisa;
+
+    public ShowBookv2(int x, int y) {
+        frame = new JFrame("livraria");
+        frame.setSize(x, y);
+        
+        pagina1 = new JTextArea(15, 70);
+        pagina1.setLineWrap(true);
+        pagina1.setEditable(false);
+
+        inface = new JPanel();
+        inface.setLayout(new GridBagLayout());
+        inface.add(pagina1);
+        frame.add(inface);
+
+        frame.setVisible(true);
+    }
+
+    private void clearInterface() {
+        inface.removeAll();
+        inface.revalidate();
+        inface.repaint();
+        
+    }
+    private void clearBib(){
+        bibliotecaPanel.removeAll();
+        bibliotecaPanel.revalidate();
+        bibliotecaPanel.repaint();
+    }
+
+    public void principal() {
+        criarBancoDeDadosSeNaoExistir();
+        clearInterface();
+
+        // Botão para fazer pesquisa
+        JButton searchButton = new JButton("Fazer Pesquisa");
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                displayContent(0, "search");
+            }
+        });
+
+        // Botão para pesquisar por livro
+        JButton findBookButton = new JButton("Pesquisar por Livro");
+        findBookButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                displayContent(0, "unique");
+            }
+        });
+
+        // Botão para carregar biblioteca
+        JButton loadLibraryButton = new JButton("Carregar Biblioteca");
+        loadLibraryButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                displayContent(0, "list");
+            }
+        });
+
+        // Adicione os botões ao inface
+        inface.add(searchButton);
+        inface.add(findBookButton);
+        inface.add(loadLibraryButton);
+
+        // Atualize o contêiner
+        inface.revalidate();
+        inface.repaint();
+    }
+
+    public void displayContent(long livro, String oq) {
+        clearInterface();
+
+        if (oq.equals("search")) {
+            displaySearch();
+        } else if (oq.equals("show")) {
+            displayBook(livro);
+        } else if (oq.equals("list")) {
+            criarBiblioteca();
+        } else if (oq.equals("unique")) {
+
+        }
+    }
+
+    private void criarBancoDeDadosSeNaoExistir() {
+        // Nome do arquivo do banco de dados
+        String nomeArquivo = "livros.db";
+
+        // Verificar se o arquivo do banco de dados existe
+        File arquivo = new File(nomeArquivo);
+
+        if (!arquivo.exists()) {
+            // Se o arquivo não existe, criar o banco de dados e a tabela
+            try {
+                Connection connection = DriverManager.getConnection("jdbc:sqlite:" + nomeArquivo);
+                Statement statement = connection.createStatement();
+
+                // Criação da tabela 'livros' com a coluna 'id' e 'esta_na_tabela'
+                String sql = "CREATE TABLE IF NOT EXISTS livros (" +
+                        "id BIGINT, " +
+                        "esta_na_tabela BOOLEAN)";
+                statement.execute(sql);
+
+                statement.close();
+                connection.close();
+
+                System.out.println("Banco de dados criado com sucesso.");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("O banco de dados já existe.");
+        }
+    }
+    public JPanel bibliotecaPanel;
+    private void criarBiblioteca() {
+        clearInterface();
+        bibliotecaPanel = new JPanel(new GridLayout(0, 6, 5, 5)); // 6 colunas, com espaçamento entre componentes
+        bibliotecaPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Adiciona uma borda ao painel
+        
+        try {
+            Connection connection = DriverManager.getConnection("jdbc:sqlite:livros.db");
+            String sql = "SELECT * FROM livros";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet resultSet = statement.executeQuery();
+            
+            while (resultSet.next()) {
+                long livroId = resultSet.getLong("id");
+                JButton livroButton = new JButton("ID: " + livroId);
+                livroButton.setPreferredSize(new Dimension(130, 30)); // Tamanho do botão
+                livroButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        SwingUtilities.invokeLater(new Runnable() {
+                            public void run() {
+                                setPesquisa(";");
+                                clearBib();
+                                displayBook(livroId);
+                                
+                            }
+                        });
+                    }
+                });
+            
+                if (resultSet.getBoolean("esta_na_tabela")) {
+                    livroButton.setBackground(new Color(173, 216, 230)); // Azul claro
+                } 
+            
+                bibliotecaPanel.add(livroButton);
+            }
+            
+            
+            resultSet.close();
+            statement.close();
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    
+        JButton voltarPrincipal = new JButton("Voltar");
+        voltarPrincipal.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                principal();
+            }
+        });
+    
+        JScrollPane scrollPane = new JScrollPane(bibliotecaPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        
+        JPanel contentPane = new JPanel(new BorderLayout());
+        contentPane.add(scrollPane, BorderLayout.CENTER);
+        contentPane.add(voltarPrincipal, BorderLayout.NORTH);
+    
+        frame.setContentPane(contentPane);
+        frame.pack();
+        frame.setVisible(true);
+    }
+    
+    
+
+    private void displayBook(long livro) {
+        final long duracao = System.nanoTime() - Procurar.tempoInicioProcura;
+        double tempoProcura = (duracao / 1000000000);
+        // Limpa a interface antes de mostrar o livro
+        clearInterface();
+        System.out.println(Thread.currentThread() + " no mostrarlivro");
+
+        GerarLivros gerador = new GerarLivros(livro);
+        String dataLivro = gerador.obterLivroEspecifico(livro)
+                .replaceAll(pesquisa, "<<<<<>" + pesquisa + "<>>>>>");
+        frame.setTitle("livro " + livro + "  |||  " + Main.livros.size() +
+                " livros em " + tempoProcura + "s, " + (Main.livros.size() / tempoProcura) + "liv/s.");
+        JButton voltarButton = new JButton("Nova Pesquisa");
+        voltarButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                setLivro(0);
+                setPesquisa("");
+                displayContent(0, "search");
+            }
+        });
+        JButton voltarPrincipal = new JButton("voltar");
+        voltarPrincipal.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+
+                principal();
+            }
+        });
+        frame.add(voltarPrincipal, BorderLayout.NORTH);
+        inserirLivroNoBancoDeDados(livro);
+        frame.add(voltarButton, BorderLayout.SOUTH);
+        
+        pagina1.setText(dataLivro);
+        pagina1.setFont(new Font("Ubuntu", Font.ITALIC, 13));
+
+        // Adicione o JTextArea atualizado de volta ao inface
+        inface.add(pagina1);
+
+        // Atualize o contêiner
+        inface.revalidate();
+        inface.repaint();
+    }
+
+    private void inserirLivroNoBancoDeDados(long idLivro) {
+
+        try {
+            Connection connection = DriverManager.getConnection("jdbc:sqlite:livros.db");
+    
+            // SQL para inserir um ID de livro na tabela
+            String sql = "INSERT OR IGNORE INTO livros (id, esta_na_tabela) VALUES (?, ?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setLong(1, idLivro);
+            statement.setBoolean(2, true); // Definir como true para indicar que está na tabela
+            statement.executeUpdate();
+    
+            statement.close();
+            connection.close();
+    
+            System.out.println("Livro inserido no banco de dados com sucesso.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public boolean rodando;
+    public long livroAtual;
+    public long tempoInicioProcura;
+    public JLabel livros= new JLabel();
+
+    private void displaySearch() {
+        clearInterface();
+        JPanel searchPanel = new JPanel();
+        JPanel panel = new JPanel();
+        JLabel label = new JLabel("Digite o termo a ser buscado:");
+        JTextField searchField = new JTextField(20);
+        JButton searchButton = new JButton("Buscar");
+        Procurar searcher = new Procurar();
+        
+        livroAtual=0;
+        SwingWorker<Void, Void> livro = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                livroAtual =(long) Main.livros.size();
+                livros.setText(Main.livros.size() +
+                " livros");
+                inface.revalidate();
+                inface.repaint();
+                Thread.sleep(1000); //TODO esse trem nao volta se parar a pesquisa e voltar
+                if(rodando){
+                    doInBackground();
+                }return null;
+            }
+        };
+        JLabel threadLabel = new JLabel("Digite quantidade de threads:");
+        JTextField threadField = new JTextField(1);
+        threadField.setText("2");
+
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                rodando=true;
+                tempoInicioProcura = System.nanoTime() - Procurar.tempoInicioProcura;
+                String term = searchField.getText();
+                setPesquisa(term);
+                int threads = Integer.parseInt(threadField.getText());
+
+                SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                    private long bookId = 0;
+
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        bookId = searcher.procurar(term, threads);
+                        if (bookId == 0) {
+                            doInBackground();
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    protected void done() {
+                        if (bookId > 0) {
+                            rodando=false;
+                            displayContent(bookId, "show");
+                        }
+                    }
+                };
+                worker.execute();
+                livro.execute();
+            }
+        });
+        
+
+        JButton stopButton = new JButton("Parar Pesquisa");
+        stopButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                Main.livros.clear();
+                rodando=false;
+                searcher.pararThreads();
+            }
+        });
+        JButton voltarPrincipal = new JButton("voltar");
+        voltarPrincipal.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+
+                principal();
+            }
+        });
+        frame.add(voltarPrincipal, BorderLayout.NORTH);
+
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.Y_AXIS));
+        searchPanel.add(label);
+        searchPanel.add(searchField);
+
+        panel.add(threadLabel);
+        panel.add(threadField);
+        searchPanel.add(searchButton);
+        searchPanel.add(stopButton);
+        panel.add(livros);
+
+        inface.add(searchPanel);
+        inface.add(panel);
+        inface.revalidate();
+        inface.repaint();
+    }
+
+    public void setLivro(long livro) {
+        this.livro = livro;
+    }
+
+    public void setPesquisa(String pesquisa) {
+        this.pesquisa = pesquisa;
+    }
+
+    public String getPesquisa() {
+        return this.pesquisa;
+    }
+
+    public long getLivro() {
+        return this.livro;
+    }
+
+}

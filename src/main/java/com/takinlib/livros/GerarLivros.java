@@ -28,7 +28,7 @@ public class GerarLivros {
     public int tamanho = 3600;
 
     public boolean achado = false;
-
+    
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public HashSet run(boolean running, boolean achado) {
 

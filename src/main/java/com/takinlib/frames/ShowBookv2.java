@@ -1,88 +1,83 @@
 package com.takinlib.frames;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.stage.Stage;
+
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.takinlib.Main;
 import com.takinlib.livros.GerarLivros;
 import com.takinlib.livros.Procurar;
 
-
-
-public class ShowBookv2 {
-    private JTextArea pagina1;
-    private JPanel inface;
-    private JFrame frame;
+public class ShowBookv2 extends Application {
+    private TextArea pagina1;
+    private BorderPane inface;
+    private Stage stage;
     private long livro;
     private String pesquisa;
 
-    public ShowBookv2(int x, int y) {
-        frame = new JFrame("livraria");
-        frame.setSize(x, y);
+    @Override
+    public void start(Stage primaryStage) {
+        stage = primaryStage;
+        stage.setTitle("livraria");
 
-        pagina1 = new JTextArea(15, 70);
-        pagina1.setLineWrap(true);
+        pagina1 = new TextArea();
+        pagina1.setWrapText(true);
         pagina1.setEditable(false);
 
-        inface = new JPanel();
-        inface.setLayout(new GridBagLayout());
-        inface.add(pagina1);
-        frame.add(inface);
+        inface = new BorderPane();
+        inface.setCenter(pagina1);
+        Scene scene = new Scene(inface, 1200, 600);
+        stage.setScene(scene);
+        stage.show();
 
-        frame.setVisible(true);
+        principal();
     }
 
     private void clearInterface() {
-        inface.removeAll();
-        inface.revalidate();
-        inface.repaint();
+        inface.getChildren().clear();
     }
 
     public void principal() {
-        criarBancoDeDadosSeNaoExistir();
         clearInterface();
+        criarBancoDeDadosSeNaoExistir();
 
-        // Botão para fazer pesquisa
-        JButton searchButton = new JButton("Fazer Pesquisa");
-        searchButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                displayContent(0, "search");
-            }
-        });
+        Button searchButton = new Button("Fazer Pesquisa");
+        searchButton.setOnAction(e -> displayContent(0, "search"));
 
-        // Botão para pesquisar por livro
-        JButton findBookButton = new JButton("Pesquisar por Livro");
-        findBookButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                displayContent(0, "unique");
-            }
-        });
+        Button findBookButton = new Button("Pesquisar por Livro");
+        findBookButton.setOnAction(e -> displayContent(0, "unique"));
 
-        // Botão para carregar biblioteca
-        JButton loadLibraryButton = new JButton("Carregar Biblioteca");
-        loadLibraryButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                displayContent(0, "list");
-            }
-        });
+        Button loadLibraryButton = new Button("Carregar Biblioteca");
+        loadLibraryButton.setOnAction(e -> displayContent(0, "list"));
 
-        // Adicione os botões ao inface
-        inface.add(searchButton);
-        inface.add(findBookButton);
-        inface.add(loadLibraryButton);
+        VBox buttonsBox = new VBox(10, searchButton, findBookButton, loadLibraryButton);
+        buttonsBox.setAlignment(Pos.CENTER);
 
-        // Atualize o contêiner
-        inface.revalidate();
-        inface.repaint();
+        inface.setBottom(buttonsBox);
     }
 
     public void displayContent(long livro, String oq) {
@@ -95,7 +90,7 @@ public class ShowBookv2 {
         } else if (oq.equals("list")) {
             criarBiblioteca();
         } else if (oq.equals("unique")) {
-
+            principal(); //TODO pesquisa por livro
         }
     }
 
@@ -114,7 +109,7 @@ public class ShowBookv2 {
 
                 // Criação da tabela 'livros' com a coluna 'id' e 'esta_na_tabela'
                 String sql = "CREATE TABLE IF NOT EXISTS livros (" +
-                        "id INTEGER PRIMARY KEY, " +
+                        "id BIGINT, " +
                         "esta_na_tabela BOOLEAN)";
                 statement.execute(sql);
 
@@ -133,41 +128,31 @@ public class ShowBookv2 {
     private void criarBiblioteca() {
         clearInterface();
 
-        JPanel bibliotecaPanel = new JPanel();
-        bibliotecaPanel.setLayout(new GridLayout(0, 5)); // 5 livros por linha
+        VBox bibliotecaPanel = new VBox(5);
+        bibliotecaPanel.setPadding(new Insets(10));
 
         try {
-            // Conexão com o banco de dados SQLite
             Connection connection = DriverManager.getConnection("jdbc:sqlite:livros.db");
-
-            // Consulta SQL para selecionar todos os livros
             String sql = "SELECT * FROM livros";
-
-            // Preparar a declaração
             PreparedStatement statement = connection.prepareStatement(sql);
-
-            // Executar a consulta
             ResultSet resultSet = statement.executeQuery();
 
-            // Loop sobre o resultado da consulta
             while (resultSet.next()) {
                 long livroId = resultSet.getLong("id");
+                Button livroButton = new Button("ID: " + livroId);
+                livroButton.setPrefWidth(130);
+                livroButton.setOnAction(e -> {
+                    displayContent(livroId);
+                });
 
-                JPanel livroPanel = new JPanel();
-                livroPanel.setPreferredSize(new Dimension(100, 100)); // Tamanho do quadradinho do livro
-
-                JLabel idLabel = new JLabel("ID: " + livroId);
-                livroPanel.add(idLabel);
-
-                // Verificar se o livro está na tabela com background azul claro
                 if (resultSet.getBoolean("esta_na_tabela")) {
-                    livroPanel.setBackground(new Color(173, 216, 230)); // Azul claro
+                    livroButton.setBackground(
+                            new Background(new BackgroundFill(Color.LIGHTBLUE, CornerRadii.EMPTY, Insets.EMPTY)));
                 }
 
-                bibliotecaPanel.add(livroPanel);
+                bibliotecaPanel.getChildren().add(livroButton);
             }
 
-            // Fechar recursos
             resultSet.close();
             statement.close();
             connection.close();
@@ -175,136 +160,162 @@ public class ShowBookv2 {
             e.printStackTrace();
         }
 
-        JScrollPane scrollPane = new JScrollPane(bibliotecaPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        Button voltarPrincipal = new Button("Voltar");
+        voltarPrincipal.setOnAction(e -> principal());
 
-        frame.add(scrollPane);
-        frame.revalidate();
-        frame.repaint();
+        BorderPane contentPane = new BorderPane();
+        contentPane.setCenter(bibliotecaPanel);
+        contentPane.setTop(voltarPrincipal);
+
+        inface.setCenter(contentPane);
     }
+    
+    private void displayContent(long livro){
+        clearInterface();
+
+        GerarLivros gerador = new GerarLivros(livro);
+        String dataLivro = gerador.obterLivroEspecifico(livro);
+
+        Label titleLabel = new Label("livro " + livro);
+        titleLabel.setFont(Font.font("Ubuntu", 13));
+
+        TextArea bookTextArea = new TextArea(dataLivro);
+        bookTextArea.setEditable(false);
+        bookTextArea.setWrapText(true);
+
+        Button voltarButton = new Button("Voltar");
+        voltarButton.setOnAction(e -> principal());
+
+        VBox buttonsBox = new VBox(10,  voltarButton);
+        buttonsBox.setAlignment(Pos.CENTER);
+
+        BorderPane contentPane = new BorderPane();
+        contentPane.setCenter(bookTextArea);
+        contentPane.setTop(titleLabel);
+        contentPane.setBottom(buttonsBox);
+
+        inface.setCenter(contentPane);
+    }
+
 
     private void displayBook(long livro) {
         final long duracao = System.nanoTime() - Procurar.tempoInicioProcura;
         double tempoProcura = (duracao / 1000000000);
         // Limpa a interface antes de mostrar o livro
         clearInterface();
-        System.out.println(Thread.currentThread() + " no mostrarlivro");
 
         GerarLivros gerador = new GerarLivros(livro);
         String dataLivro = gerador.obterLivroEspecifico(livro)
                 .replaceAll(pesquisa, "<<<<<>" + pesquisa + "<>>>>>");
-        frame.setTitle("livro " + livro + "  |||  " + Main.livros.size() +
-                " livros em " + tempoProcura + "s, " + (Main.livros.size() / tempoProcura) + "liv/s.");
-        JButton voltarButton = new JButton("Nova Pesquisa");
-        voltarButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                setLivro(0);
-                setPesquisa("");
-                displayContent(0, "search");
-            }
-        });
+        
         inserirLivroNoBancoDeDados(livro);
-        frame.add(voltarButton, BorderLayout.SOUTH);
-        pagina1.setText(dataLivro);
-        pagina1.setFont(new Font("Ubuntu", Font.ITALIC, 13));
 
-        // Adicione o JTextArea atualizado de volta ao inface
-        inface.add(pagina1);
+        Label titleLabel = new Label("livro " + livro + "  |||  " + Main.livros.size() +
+                " livros em " + tempoProcura + "s, " + (Main.livros.size() / tempoProcura) + "liv/s.");
+        titleLabel.setFont(Font.font("Ubuntu", 13));
 
-        // Atualize o contêiner
-        inface.revalidate();
-        inface.repaint();
+        TextArea bookTextArea = new TextArea(dataLivro);
+        bookTextArea.setEditable(false);
+        bookTextArea.setWrapText(true);
+
+        Button novaPesquisaButton = new Button("Nova Pesquisa");
+        novaPesquisaButton.setOnAction(e -> {
+            setLivro(0);
+            setPesquisa("");
+            displayContent(0, "search");
+        });
+
+        Button voltarButton = new Button("Voltar");
+        voltarButton.setOnAction(e -> principal());
+
+        VBox buttonsBox = new VBox(10, novaPesquisaButton, voltarButton);
+        buttonsBox.setAlignment(Pos.CENTER);
+
+        BorderPane contentPane = new BorderPane();
+        contentPane.setCenter(bookTextArea);
+        contentPane.setTop(titleLabel);
+        contentPane.setBottom(buttonsBox);
+
+        inface.setCenter(contentPane);
     }
+
     private void inserirLivroNoBancoDeDados(long idLivro) {
+
         try {
             Connection connection = DriverManager.getConnection("jdbc:sqlite:livros.db");
-    
+
             // SQL para inserir um ID de livro na tabela
-            String sql = "INSERT INTO livros (id, esta_na_tabela) VALUES (?, ?)";
+            String sql = "INSERT OR IGNORE INTO livros (id, esta_na_tabela) VALUES (?, ?)";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setLong(1, idLivro);
             statement.setBoolean(2, true); // Definir como true para indicar que está na tabela
             statement.executeUpdate();
-    
+
             statement.close();
             connection.close();
-    
+
             System.out.println("Livro inserido no banco de dados com sucesso.");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
+    private long bookId;
+
     private void displaySearch() {
         clearInterface();
-        JPanel searchPanel = new JPanel();
-        JPanel panel = new JPanel();
-        JLabel label = new JLabel("Digite o termo a ser buscado:");
-        JTextField searchField = new JTextField(20);
-        JButton searchButton = new JButton("Buscar");
+
+        VBox searchPanel = new VBox(10);
+        Label label = new Label("Digite o termo a ser buscado:");
+        TextField searchField = new TextField();
+        Button searchButton = new Button("Buscar");
         Procurar searcher = new Procurar();
 
-        JLabel threadLabel = new JLabel("Digite quantidade de threads:");
-        JTextField threadField = new JTextField(1);
-        threadField.setText("2");
+        HBox threadBox = new HBox(10);
+        Label threadLabel = new Label("Digite quantidade de threads (muitos pode bugar):");
+        TextField threadField = new TextField("2");
+        threadBox.getChildren().addAll(threadLabel, threadField);
 
-        searchButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                String term = searchField.getText();
-                setPesquisa(term);
-                int threads = Integer.parseInt(threadField.getText());
+        searchButton.setOnAction(e -> {
+            String term = searchField.getText();
+            setPesquisa(term);
+            int threads = Integer.parseInt(threadField.getText());
 
-                SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                    private long bookId = 0;
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.submit(() -> {
 
-                    @Override
-                    protected Void doInBackground() throws Exception {
-                        bookId = searcher.procurar(term, threads);
-                        if (bookId == 0) {
-                            doInBackground();
-                        }
-                        return null;
+                try {
+                    bookId = searcher.procurar(term, threads);
+                    if (bookId > 0) {
+                        Platform.runLater(() -> displayContent(bookId, "show"));
                     }
+                } catch (InterruptedException e1) {
 
-                    @Override
-                    protected void done() {
-                        if (bookId > 0) {
-                            displayContent(bookId, "show");
-                        }
-                    }
-                };
-                worker.execute();
-            }
+                    e1.printStackTrace();
+                }
+
+            });
+
+            executor.shutdown();
         });
 
-        JButton stopButton = new JButton("Parar Pesquisa");
-        stopButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                searcher.pararThreads();
-            }
+        Button stopButton = new Button("Parar Pesquisa");
+        stopButton.setOnAction(e -> {
+            Main.livros.clear();
+            searcher.pararThreads();
         });
 
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.Y_AXIS));
-        searchPanel.add(label);
-        searchPanel.add(searchField);
+        searchPanel.getChildren().addAll(label, searchField, searchButton, stopButton, threadBox);
+        inface.setBottom(searchPanel);
+    }
 
-        panel.add(threadLabel);
-        panel.add(threadField);
-        searchPanel.add(searchButton);
-        searchPanel.add(stopButton);
-
-        inface.add(searchPanel);
-        inface.add(panel);
-        inface.revalidate();
-        inface.repaint();
+    // Additional methods if needed
+    private void setPesquisa(String term) {
+        this.pesquisa = term;
     }
 
     public void setLivro(long livro) {
         this.livro = livro;
-    }
-
-    public void setPesquisa(String pesquisa) {
-        this.pesquisa = pesquisa;
     }
 
     public String getPesquisa() {
@@ -314,5 +325,4 @@ public class ShowBookv2 {
     public long getLivro() {
         return this.livro;
     }
-
 }
